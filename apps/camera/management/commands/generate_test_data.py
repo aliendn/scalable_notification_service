@@ -58,10 +58,10 @@ class Command(BaseCommand):
         self.stdout.write("Creating cameras...")
         cameras = []
         for i in range(camera_count):
-            ip = f"192.168.1.{i+1}"
+            ip = f"192.168.1.{i + 1}"
             camera = Camera(
                 company=company,
-                name=f"Camera {i+1}",
+                name=f"Camera {i + 1}",
                 location=fake.address(),
                 ip_address=ip,
                 status=random.choice([0, 1]),
@@ -71,6 +71,7 @@ class Command(BaseCommand):
             cameras.append(camera)
 
         cameras = Camera.objects.bulk_create(cameras)
+        trigger_choices = ['TURNED OFF', 'TURNED ON', 'MOVED', 'STARTED RECORDING', 'STOPPED RECORDING']
 
         self.stdout.write("Creating events and logs...")
         logs = []
@@ -80,7 +81,11 @@ class Command(BaseCommand):
                 action = random.choice(CameraActionLog.ActionChoices.values)
                 event = Event.objects.create(
                     event_type=fake.word(),
-                    details={"info": fake.text()},
+                    details={
+                    "camera_id": str(camera.id),
+                    "performer_id": str(performer.id),
+                    "status_change": "online → offline"
+                },
                     timestamp=timezone.now()
                 )
                 log = CameraActionLog(
@@ -88,7 +93,18 @@ class Command(BaseCommand):
                     performed_by=performer,
                     action=action,
                     timestamp=timezone.now(),
-                    metadata={"details": fake.sentence()},
+                    metadata={
+                        "old_status": "online",
+                        "new_status": "offline",
+                        "trigger": random.choice(trigger_choices),
+                        "ip": f"192.168.1.{random.randint(1, 254)}",
+                        "location_change": {
+                            "from": fake.building_number(),
+                            "to": fake.building_number()
+                        },
+                        "firmware_version": f"v{random.randint(1, 5)}.{random.randint(0, 9)}",
+                        "signal_strength": f"{random.randint(1, 5)} bars"
+                    },
                     old_status="online",
                     new_status="offline"
                 )

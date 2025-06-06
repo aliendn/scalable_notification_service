@@ -1,14 +1,51 @@
 import logging
+import uuid
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.utils import timezone
-from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy as _
 
 from apps.users.models import User
 from utils.models import BaseModel
 
 logger = logging.getLogger(__name__)
+
+
+class NotificationPreference(BaseModel):
+    class EntityTypeChoices(models.IntegerChoices):
+        Company = 0, ("Company")
+        Camera = 1, ("Camera")
+
+    class NotificationTypeChoices(models.IntegerChoices):
+        SYSTEM = 0, ("SYSTEM")
+        SMS = 1, ("SMS")
+        EMAIL = 2, ("EMAIL")
+
+    entity_type = models.PositiveSmallIntegerField(
+        choices=EntityTypeChoices.choices,
+        verbose_name=_("Entity type"),
+    )
+    entity_id = models.UUIDField(
+        verbose_name=_("Entity ID"),
+        default=uuid.uuid4
+    )
+    notification_type = models.PositiveSmallIntegerField(
+        choices=NotificationTypeChoices.choices,
+        verbose_name=_("Notification type")
+    )
+    is_enabled = models.BooleanField(default=True, verbose_name=_("is type enabled"))
+
+    class Meta:
+        unique_together = ("entity_type", "entity_id", "notification_type")
+        indexes = [
+            models.Index(fields=["entity_type", "entity_id", "notification_type"]),
+        ]
+        verbose_name = _("Notification Preference")
+        verbose_name_plural = _("Notification Preferences")
+
+    def __str__(self):
+        return f"{self.entity_type}:{self.entity_id} -> {self.get_notification_type_display()} enabled: {self.is_enabled}"
 
 
 class Event(BaseModel):

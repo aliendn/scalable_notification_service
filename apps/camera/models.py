@@ -65,7 +65,7 @@ class Camera(BaseModel):
         verbose_name_plural = _("Cameras")
 
 
-class CameraActionLog(models.Model):
+class CameraActionLog(BaseModel):
     class ActionChoices(models.IntegerChoices):
         TURNED_OFF = 0, _("TURNED OFF")
         TURNED_ON = 1, _("TURNED ON")

@@ -5,7 +5,7 @@ from apps.notification_service.models import (
     SMSNotification,
     SystemNotification,
     NotificationTemplate,
-    Event
+    Event, NotificationPreference
 )
 from utils.admins import BaseSilentDeleteAdmin
 
@@ -19,8 +19,9 @@ class EmailNotificationAdmin(BaseSilentDeleteAdmin):
         'email',
         'is_deleted',
         'source',
-        'create_time'
+        'create_time', 'priority'
     ]
+    list_filter = ['is_viewed', 'priority']
     search_fields = [
         'title',
         'is_deleted',
@@ -49,10 +50,11 @@ class SMSNotificationAdmin(BaseSilentDeleteAdmin):
         'is_deleted',
         'phone_number',
         'source',
-        'create_time'
+        'create_time', 'priority'
     ]
     search_fields = ['phone_number']
     raw_id_fields = ('receiver',)
+    list_filter = ['is_viewed', 'priority']
 
 
 @admin.register(SystemNotification)
@@ -64,11 +66,11 @@ class SystemNotificationAdmin(BaseSilentDeleteAdmin):
         'is_deleted',
         'is_viewed',
         'source',
-        'create_time'
+        'create_time', 'priority'
     ]
     search_fields = ['title']
     raw_id_fields = ('receiver',)
-    list_filter = ['is_viewed']
+    list_filter = ['is_viewed', 'priority']
 
 
 @admin.register(NotificationTemplate)
@@ -80,6 +82,26 @@ class NotificationTemplateAdmin(BaseSilentDeleteAdmin):
     ]
     search_fields = ['id', 'title']
     list_filter = ['template_type']
+
+
+@admin.register(NotificationPreference)
+class NotificationPreferenceAdmin(BaseSilentDeleteAdmin):
+    list_display = (
+        'id',
+        'entity_type',
+        'entity_id',
+        'get_notification_type_display',
+        'is_enabled',
+    )
+    list_filter = (
+        'entity_type',
+        'notification_type',
+        'is_enabled',
+    )
+    search_fields = (
+        'entity_id',
+    )
+    ordering = ('-id',)
 
 
 @admin.register(Event)

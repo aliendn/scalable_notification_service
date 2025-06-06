@@ -1,7 +1,6 @@
-from django.urls import path, include, re_path
+from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
-from apps.notification_service import consumers
 from apps.notification_service.views.generics import SystemNotificationViewSet
 
 app_name = 'notification_service'
@@ -9,7 +8,7 @@ app_name = 'notification_service'
 router = DefaultRouter()
 router.register(r'', SystemNotificationViewSet, basename='notification')
 
-urlpatterns = [
+NOTIFICATION_API_V1 = [
     path('', include(router.urls)),
     path('<str:pk>/mark_as_read/',
          SystemNotificationViewSet.as_view({'post': 'mark_as_read'}),
@@ -30,9 +29,3 @@ urlpatterns = [
          SystemNotificationViewSet.as_view({'post': 'mark_all_as_delete'}),
          name='delete-all-notifications'),
 ]
-
-websocket_urlpatterns = [
-    re_path(r"ws/notifications/(?P<room_name>\w+)/$", consumers.NotificationConsumer.as_asgi()),
-]
-
-NOTIFICATION_API_V1 = urlpatterns + websocket_urlpatterns

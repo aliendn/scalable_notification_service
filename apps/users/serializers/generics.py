@@ -31,7 +31,7 @@ class CompanySerializer(serializers.ModelSerializer):
 
 class CompanyUserSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
-    user_id = serializers.IntegerField(write_only=True)
+    user_id = serializers.UUIDField(write_only=True)
 
     class Meta:
         model = CompanyUser

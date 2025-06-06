@@ -26,6 +26,17 @@ DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
 APPEND_SLASH = True
 
+# Allow all origins (for development only)
+CORS_ALLOW_ALL_ORIGINS = True
+#
+# CORS_ALLOWED_ORIGINS = [
+#     "http://localhost:5500",  # for example, if serving HTML from VS Code Live Server
+#     "http://127.0.0.1:5500",
+#     "http://0.0.0.0:5500",
+# ]
+
+CORS_ALLOW_CREDENTIALS = True
+
 #############
 # Apps region
 #############
@@ -93,6 +104,12 @@ TEMPLATES = [
 ####################
 # WSGI_APPLICATION = 'scalable_notification_service.wsgi.application'
 ASGI_APPLICATION = "scalable_notification_service.asgi.application"
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",  # For testing only prod is RedisChannelLayer
+    }
+}
 
 #################
 # DataBase region
@@ -205,6 +222,10 @@ REST_FRAMEWORK = {
 }
 
 SPECTACULAR_SETTINGS = {
+    'TAGS': [
+        {'name': 'Authentication', 'description': 'JWT token management'},
+    ],
+    'COMPONENT_SPLIT_REQUEST': True,
     'TITLE': 'MY project',
     'DESCRIPTION': 'MY project description',
     'VERSION': '0.0.1',

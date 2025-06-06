@@ -17,32 +17,30 @@ app_name = 'users'
 router = DefaultRouter()
 router.register(r'companies', CompanyViewSet, basename='company')
 
-urlpatterns = [
+USER_API_V1 = [
     path('', include(router.urls)),
-    path('companies/<int:company_id>/users/',
+    path('companies/<str:company_id>/users/',
          CompanyUserViewSet.as_view({
              'get': 'list',
              'post': 'create'
          }), name='company-users'),
-    path('companies/<int:company_id>/users/<int:pk>/',
+    path('companies/<str:company_id>/users/<str:pk>/',
          CompanyUserViewSet.as_view({
              'get': 'retrieve',
-             'put': 'update',
-             'patch': 'partial_update',
              'delete': 'destroy'
          }), name='company-user-detail'),
-    path('companies/<int:company_id>/users/<int:pk>/change_role/',
+    path('companies/<str:company_id>/users/<str:pk>/change_role/',
          CompanyUserViewSet.as_view({'post': 'change_role'}),
          name='change-role'),
-    path('companies/<int:company_id>/customers/',
+    path('companies/<str:company_id>/customers/',
          CustomerCreateViewSet.as_view({
              'get': 'list',
              'post': 'create'
          }), name='customers'),
-    path('companies/<int:company_id>/members/',
+    path('companies/<str:company_id>/members/',
          UserViewSet.as_view({'get': 'list'}),
          name='company-members'),
-    path('companies/<int:company_id>/members/<int:pk>/',
+    path('companies/<str:company_id>/members/<str:pk>/',
          UserViewSet.as_view({'get': 'retrieve'}),
          name='member-detail'),
     path('register/', UserRegistrationView.as_view(), name='user-registration'),
@@ -50,4 +48,3 @@ urlpatterns = [
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]
 
-USER_API_V1 = urlpatterns

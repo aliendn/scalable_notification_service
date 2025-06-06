@@ -9,10 +9,12 @@ from drf_spectacular.views import (
 )
 from apps.users.urls import USER_API_V1
 from apps.notification_service.urls import NOTIFICATION_API_V1
+from apps.camera.urls import CAMERA_API_V1
 
 API_V1 = [
     path('users/', include(USER_API_V1)),
-    path('notifications/', include(NOTIFICATION_API_V1))
+    path('notifications/', include(NOTIFICATION_API_V1)),
+    path('camera_service/', include(CAMERA_API_V1)),
 ]
 
 urlpatterns = [

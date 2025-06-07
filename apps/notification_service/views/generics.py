@@ -1,12 +1,17 @@
+import json
 import logging
-from itertools import chain
 
+from django.core.serializers.json import DjangoJSONEncoder
 from django.http import Http404
+from django.http import StreamingHttpResponse
+# from itertools import chain
+from django.utils.dateparse import parse_datetime
+from django.utils.timezone import now
 from django.utils.translation import gettext as _
 from drf_spectacular.utils import (
-    extend_schema,
     OpenApiResponse, OpenApiExample
 )
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status, mixins
 from rest_framework.permissions import IsAuthenticated
@@ -18,54 +23,116 @@ from apps.notification_service.models import (
     SystemNotification, EmailNotification, SMSNotification, BaseNotificationModel
 )
 from apps.notification_service.serializers.base import BaseNotificationSerializer, SelectedSystemNotificationSerializer
+from apps.notification_service.serializers.generics import SystemNotificationSerializer
+from apps.users.permissions import IsCompanyEmployeeTypeChoices
 
 logger = logging.getLogger(__name__)
 
 
+@extend_schema(
+    tags=["Notifications"],
+    summary="List notifications",
+    description="Retrieve a list of system notifications for the authenticated user with optional filters.",
+    parameters=[
+        OpenApiParameter(
+            name="type",
+            type=OpenApiTypes.INT,
+            required=False,
+            description="Type of notification, integer enum from `TypeNotificationChoices`."
+        ),
+        OpenApiParameter(
+            name="priority",
+            type=OpenApiTypes.INT,
+            required=False,
+            description="Priority level (0=LOW, 1=MEDIUM, 2=HIGH, 3=CRITICAL)."
+        ),
+        OpenApiParameter(
+            name="from_time",
+            type=OpenApiTypes.DATETIME,
+            required=False,
+            description="Start timestamp for filtering (ISO 8601 format: `YYYY-MM-DDTHH:MM:SSZ`)."
+        ),
+        OpenApiParameter(
+            name="to_time",
+            type=OpenApiTypes.DATETIME,
+            required=False,
+            description="End timestamp for filtering (ISO 8601 format). Defaults to current time if not set."
+        ),
+    ]
+)
 class NotificationsListView(
     mixins.ListModelMixin, GenericViewSet
 ):
-    serializer_class = BaseNotificationSerializer
-    permission_classes = [IsAuthenticated]
+    serializer_class = SystemNotificationSerializer
+    permission_classes = [IsCompanyEmployeeTypeChoices]
 
     def get_queryset_all(self):
         user = self.request.user
-        type_param = self.request.query_params.get("type")
-        valid_types = BaseNotificationModel.TypeNotificationChoices.values
+        params = self.request.query_params
 
-        def filter_by_type(qs, type_val=None):
-            if type_val is not None:
-                return qs.filter(type_notification=type_val, is_type_enabled=True)
-            return qs
+        type_param = params.get("type")
+        priority_param = params.get("priority")
+        from_time_str = params.get("from_time")
+        to_time_str = params.get("to_time")
+
+        valid_types = BaseNotificationModel.TypeNotificationChoices.values
+        type_val = None
+        if type_param is not None:
+            try:
+                type_val = int(type_param)
+                if type_val not in valid_types:
+                    raise Http404("Invalid notification type")
+            except (ValueError, TypeError):
+                raise Http404("Invalid notification type")
 
         try:
-            type_val = int(type_param) if type_param is not None else None
-            if type_val is None and type_val not in valid_types:
-                raise Http404("Notification type not found")
-        except (ValueError, TypeError):
-            raise Http404("Invalid notification type")
+            priority_val = int(priority_param) if priority_param else None
+        except ValueError:
+            raise Http404("Invalid priority")
 
-        system_qs = filter_by_type(
-            SystemNotification.objects.filter(receiver=user, is_deleted=False), type_val
-        )
-        email_qs = filter_by_type(
-            EmailNotification.objects.filter(receiver=user, is_deleted=False), type_val
-        )
-        sms_qs = filter_by_type(
-            SMSNotification.objects.filter(receiver=user, is_deleted=False), type_val
+        from_time = parse_datetime(from_time_str) if from_time_str else None
+        to_time = parse_datetime(to_time_str) if to_time_str else now()
+
+        if from_time_str and not from_time:
+            raise Http404("Invalid from_time format")
+        if to_time_str and not to_time:
+            raise Http404("Invalid to_time format")
+
+        queryset = SystemNotification.objects.filter(
+            receiver=user,
+            is_deleted=False,
+            is_type_enabled=True,
         )
 
-        combined = sorted(
-            chain(system_qs, email_qs, sms_qs),
-            key=lambda x: x.timestamp,
-            reverse=True
+        if type_val is not None:
+            queryset = queryset.filter(type_notification=type_val)
+
+        if priority_param is not None:
+            queryset = queryset.filter(priority=priority_val)
+
+        if from_time:
+            queryset = queryset.filter(timestamp__range=(from_time, to_time))
+
+        queryset = queryset.values(
+            "id", "title", "description", "priority", "timestamp",
+            "is_viewed", "type_notification", "source", "event_id"
         )
-        return combined
+
+        return queryset
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset_all()
         serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+        return StreamingHttpResponse(self.generator(queryset), content_type='application/json')
+
+    @staticmethod
+    def generator(queryset):
+        yield '['
+        for i, item in enumerate(queryset):
+            if i != 0:
+                yield ','
+            yield json.dumps(item, cls=DjangoJSONEncoder)
+        yield ']'
 
 
 class NotificationsDetailView(
@@ -80,6 +147,8 @@ class NotificationsDetailView(
         for model in [SystemNotification, EmailNotification, SMSNotification]:
             try:
                 obj = model.objects.get(id=pk, receiver=user, is_deleted=False, is_type_enabled=True)
+                obj.is_viewed = True
+                obj.save()
                 return Response(self.get_serializer(obj).data)
             except model.DoesNotExist:
                 continue
@@ -319,4 +388,3 @@ class SoftDeleteAllNotificationsView(APIView):
         user = request.user
         SystemNotification.objects.filter(receiver=user, is_deleted=False, is_type_enabled=True).update(is_deleted=True)
         return Response(data={"detail": "deleted all!!!!"}, status=status.HTTP_200_OK)
-

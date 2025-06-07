@@ -67,7 +67,7 @@ class SystemNotificationAdmin(BaseSilentDeleteAdmin):
         'source',
         'create_time', 'priority'
     ]
-    search_fields = ['title']
+    search_fields = ['title', 'receiver__email']
     raw_id_fields = ('receiver',)
     list_filter = ['is_viewed', 'priority']
 

@@ -16,15 +16,19 @@ fake = Faker()
 class Command(BaseCommand):
     help = "Generate fake test data for notifications and preferences"
 
+    def add_arguments(self, parser):
+        parser.add_argument('--count', type=int, default=10)
+
     def handle(self, *args, **kwargs):
         self.stdout.write("Starting test data generation...")
+        data_count = kwargs['count']
 
         # Get active companies, all cameras, all users
         companies = list(Company.objects.filter(is_active=True))
         cameras = list(Camera.objects.all())
-        users = list(User.objects.filter(is_active=True))
+        user = User.objects.get(is_active=True, email="dehghan215@gmail.com")
 
-        self.stdout.write(f"Found {len(companies)} companies, {len(cameras)} cameras, {len(users)} users.")
+        self.stdout.write(f"Found {len(companies)} companies, {len(cameras)} cameras, {(user)} users.")
 
         event = Event.objects.create(
             event_type="TEST_EVENT",
@@ -42,7 +46,7 @@ class Command(BaseCommand):
         sms_notifications = []
         email_notifications = []
 
-        for user in users:
+        for _ in range(data_count):
             system_notifications.append(SystemNotification(
                 receiver=user,
                 title=fake.street_name(),

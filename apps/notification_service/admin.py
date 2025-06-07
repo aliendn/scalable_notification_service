@@ -4,8 +4,7 @@ from apps.notification_service.models import (
     EmailNotification,
     SMSNotification,
     SystemNotification,
-    NotificationTemplate,
-    Event, NotificationPreference
+    Event
 )
 from utils.admins import BaseSilentDeleteAdmin
 
@@ -71,37 +70,6 @@ class SystemNotificationAdmin(BaseSilentDeleteAdmin):
     search_fields = ['title']
     raw_id_fields = ('receiver',)
     list_filter = ['is_viewed', 'priority']
-
-
-@admin.register(NotificationTemplate)
-class NotificationTemplateAdmin(BaseSilentDeleteAdmin):
-    list_display = [
-        'title',
-        'description',
-        'template_type'
-    ]
-    search_fields = ['id', 'title']
-    list_filter = ['template_type']
-
-
-@admin.register(NotificationPreference)
-class NotificationPreferenceAdmin(BaseSilentDeleteAdmin):
-    list_display = (
-        'id',
-        'entity_type',
-        'entity_id',
-        'get_notification_type_display',
-        'is_enabled',
-    )
-    list_filter = (
-        'entity_type',
-        'notification_type',
-        'is_enabled',
-    )
-    search_fields = (
-        'entity_id',
-    )
-    ordering = ('-id',)
 
 
 @admin.register(Event)

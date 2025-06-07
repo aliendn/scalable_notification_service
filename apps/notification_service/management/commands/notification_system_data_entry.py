@@ -1,15 +1,11 @@
-import random
-
 from django.core.management.base import BaseCommand
 from faker import Faker
 
 from apps.camera.models import Camera
 from apps.notification_service.models import (
-    NotificationPreference,
     EmailNotification,
     SMSNotification,
     SystemNotification,
-    NotificationTemplate,
     Event,
 )
 from apps.users.models import User, Company
@@ -26,57 +22,22 @@ class Command(BaseCommand):
         # Get active companies, all cameras, all users
         companies = list(Company.objects.filter(is_active=True))
         cameras = list(Camera.objects.all())
-        users = list(User.objects.all())  # Assuming User doesn't have is_active field
+        users = list(User.objects.filter(is_active=True))
 
         self.stdout.write(f"Found {len(companies)} companies, {len(cameras)} cameras, {len(users)} users.")
 
-        notif_types = [
-            NotificationPreference.NotificationTypeChoices.SYSTEM,
-            NotificationPreference.NotificationTypeChoices.SMS,
-            NotificationPreference.NotificationTypeChoices.EMAIL,
-        ]
+        event = Event.objects.create(
+            event_type="TEST_EVENT",
+            details={
+                "event_type": "camera_manual",
+                "details": {
+                    "camera_id": "123",
+                    "performer_id": "456",
+                    "status_change": "ONLINE → OFFLINE"
+                }
+            }
+        )
 
-        # 1. Create NotificationPreferences for companies and cameras
-        preferences = []
-
-        # Company preferences
-        for company in companies:
-            for ntype in notif_types:
-                enabled = random.choice([True, False])
-                preferences.append(NotificationPreference(
-                    entity_type=NotificationPreference.EntityTypeChoices.Company,
-                    entity_id=company.pk,  # UUIDField
-                    notification_type=ntype,
-                    is_enabled=enabled,
-                ))
-
-        # Camera preferences
-        for camera in cameras:
-            for ntype in notif_types:
-                enabled = random.choice([True, False])
-                preferences.append(NotificationPreference(
-                    entity_type=NotificationPreference.EntityTypeChoices.Camera,
-                    entity_id=camera.pk,
-                    notification_type=ntype,
-                    is_enabled=enabled,
-                ))
-
-        NotificationPreference.objects.bulk_create(preferences)
-        self.stdout.write(f"Created {len(preferences)} notification preferences.")
-
-        # 2. Create sample event for notifications
-        event = Event.objects.create(event_type="TEST_EVENT", details={"info": "Fake event for testing"})
-
-        # Create notification templates if not exist
-        for ttype in notif_types:
-            NotificationTemplate.objects.get_or_create(
-                title=f"Template for {NotificationPreference.NotificationTypeChoices(ttype).label}",
-                template_type=ttype,
-                defaults={
-                    "description": f"Description for {NotificationPreference.NotificationTypeChoices(ttype).label}"},
-            )
-
-        # 3. Create notifications for users only
         system_notifications = []
         sms_notifications = []
         email_notifications = []
@@ -84,31 +45,34 @@ class Command(BaseCommand):
         for user in users:
             system_notifications.append(SystemNotification(
                 receiver=user,
-                title="System Notification",
-                description="This is a fake system notification.",
-                source="test_source",
-                priority=1,  # MEDIUM priority
+                title=fake.street_name(),
+                description=fake.text(max_nb_chars=80),
+                source=f"{fake.random_int(min=0, max=1)}",
+                priority=fake.random_int(min=0, max=3),
                 event=event,
+                type_notification=fake.random_int(min=0, max=4)
             ))
 
             sms_notifications.append(SMSNotification(
                 receiver=user,
-                phone_number=fake.msisdn()[:16],  # Truncate to max length 16, generate numeric string
-                title="SMS Notification",
+                phone_number=user.phone_number,  # Truncate to max length 16, generate numeric string
+                title=f"sms sent to {fake.name_male()}",
                 description="This is a fake SMS notification.",
-                source="test_source",
-                priority=1,
+                source=f"{fake.random_int(min=0, max=1)}",
+                priority=fake.random_int(min=0, max=3),
                 event=event,
+                type_notification=fake.random_int(min=0, max=4)
             ))
 
             email_notifications.append(EmailNotification(
                 receiver=user,
                 email=user.email,
-                title="Email Notification",
-                description="This is a fake email notification.",
-                source="test_source",
-                priority=1,
+                title=f"Email sent to {fake.name_male()}",
+                description="This is a fake Email notification.",
+                source=f"{fake.random_int(min=0, max=1)}",
+                priority=fake.random_int(min=0, max=3),
                 event=event,
+                type_notification=fake.random_int(min=0, max=4)
             ))
 
         SystemNotification.objects.bulk_create(system_notifications)

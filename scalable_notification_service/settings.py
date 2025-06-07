@@ -48,6 +48,8 @@ DJANGO_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    # "django.contrib.postgres",
+    # "psqlextra",
 ]
 
 OTHER_APPS = [
@@ -116,6 +118,18 @@ CHANNEL_LAYERS = {
 # DataBase region
 #################
 DATABASES = {'default': env.db()}
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'psqlextra.backend',
+#         'NAME': 'notification_core',
+#         'USER': 'myadmin',
+#         'PASSWORD': '985698',
+#         'HOST': 'localhost',
+#         'PORT': 5432,
+#     }
+# }
+
 
 ######################
 # Auth password region

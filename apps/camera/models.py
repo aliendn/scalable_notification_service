@@ -1,3 +1,4 @@
+from django.contrib.postgres.indexes import GinIndex
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -5,7 +6,10 @@ from django.utils.translation import gettext_lazy as _
 from apps.notification_service.models import Event
 from apps.users.models import Company, User
 from utils.models import BaseModel
-from django.contrib.postgres.indexes import GinIndex
+
+
+# from psqlextra.models import PostgresPartitionedModel
+# from psqlextra.types import PostgresPartitioningMethod
 
 
 class Camera(BaseModel):
@@ -112,12 +116,16 @@ class CameraActionLog(BaseModel):
         verbose_name=_("new status")
     )
 
+    # class PartitioningMeta:
+    #     method = PostgresPartitioningMethod.RANGE
+    #     key = ['timestamp']
+
     class Meta:
         indexes = [
             models.Index(fields=["camera", "timestamp"]),
             models.Index(fields=["performed_by"]),
             models.Index(fields=["action", "timestamp"]),
-            GinIndex(fields=["metadata"])
+            GinIndex(fields=["metadata"]),
         ]
         verbose_name = _("Camera Action Log")
         verbose_name_plural = _("Camera Action Logs")

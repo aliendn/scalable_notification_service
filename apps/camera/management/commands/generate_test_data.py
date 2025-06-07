@@ -1,13 +1,12 @@
+import random
+
 from django.core.management.base import BaseCommand
 from django.utils.crypto import get_random_string
 from faker import Faker
 
-from apps.users.models import User, Company, CompanyUser
 from apps.camera.models import *
 from apps.notification_service.models import Event
-
-import random
-from django.utils import timezone
+from apps.users.models import CompanyUser
 
 fake = Faker()
 
@@ -79,15 +78,15 @@ class Command(BaseCommand):
             for _ in range(logs_per_camera):
                 performer = random.choice(users)
                 action = random.choice(CameraActionLog.ActionChoices.values)
-                event = Event.objects.create(
-                    event_type=fake.word(),
-                    details={
-                    "camera_id": str(camera.id),
-                    "performer_id": str(performer.id),
-                    "status_change": "online → offline"
-                },
-                    timestamp=timezone.now()
-                )
+                # event = Event.objects.create(
+                #     event_type=fake.word(),
+                #     details={
+                #         "camera_id": str(camera.id),
+                #         "performer_id": str(performer.id),
+                #         "status_change": "online → offline"
+                #     },
+                #     timestamp=timezone.now()
+                # )
                 log = CameraActionLog(
                     camera=camera,
                     performed_by=performer,

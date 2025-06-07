@@ -1,5 +1,4 @@
 import logging
-import uuid
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
@@ -10,42 +9,6 @@ from apps.users.models import User
 from utils.models import BaseModel
 
 logger = logging.getLogger(__name__)
-
-
-class NotificationPreference(BaseModel):
-    class EntityTypeChoices(models.IntegerChoices):
-        Company = 0, ("Company")
-        Camera = 1, ("Camera")
-
-    class NotificationTypeChoices(models.IntegerChoices):
-        SYSTEM = 0, ("SYSTEM")
-        SMS = 1, ("SMS")
-        EMAIL = 2, ("EMAIL")
-
-    entity_type = models.PositiveSmallIntegerField(
-        choices=EntityTypeChoices.choices,
-        verbose_name=_("Entity type"),
-    )
-    entity_id = models.UUIDField(
-        verbose_name=_("Entity ID"),
-        default=uuid.uuid4
-    )
-    notification_type = models.PositiveSmallIntegerField(
-        choices=NotificationTypeChoices.choices,
-        verbose_name=_("Notification type")
-    )
-    is_enabled = models.BooleanField(default=True, verbose_name=_("is type enabled"))
-
-    class Meta:
-        unique_together = ("entity_type", "entity_id", "notification_type")
-        indexes = [
-            models.Index(fields=["entity_type", "entity_id", "notification_type"]),
-        ]
-        verbose_name = _("Notification Preference")
-        verbose_name_plural = _("Notification Preferences")
-
-    def __str__(self):
-        return f"{self.entity_type}:{self.entity_id} -> {self.get_notification_type_display()} enabled: {self.is_enabled}"
 
 
 class Event(BaseModel):
@@ -74,7 +37,12 @@ class BaseNotificationModel(BaseModel):
         HIGH = 2, _("HIGH")
         CRITICAL = 3, _("CRITICAL")
 
-    PRIORITY_CHOICES = [(i, f"Priority {i}") for i in range(1, 6)]
+    class TypeNotificationChoices(models.IntegerChoices):
+        CREATE_CUSTOMER_BY_EMPLOYEE = 0, _('CREATE_CUSTOMER_BY_EMPLOYEE')
+        RECORDING_CAMERA = 1, _("RECORDING_CAMERA")
+        STOPPED_CAMERA = 2, _("STOPPED_CAMERA")
+        ONLINE_CAMERA = 3, _("ONLINE_CAMERA")
+        OFFLINE_CAMERA = 4, _("OFFLINE_CAMERA")
 
     title = models.CharField(
         max_length=255,
@@ -111,6 +79,14 @@ class BaseNotificationModel(BaseModel):
     timestamp = models.DateTimeField(
         default=timezone.now,
         verbose_name=_("timestamp")
+    )
+    type_notification = models.PositiveSmallIntegerField(
+        choices=TypeNotificationChoices.choices,
+        verbose_name=_("application type of notification"),
+    )
+    is_type_enabled = models.BooleanField(
+        default=False,
+        verbose_name=_("is type enabled for the user")
     )
 
     @classmethod
@@ -195,30 +171,3 @@ class SystemNotification(BaseNotificationModel):
             models.Index(fields=["timestamp"]),
         ]
         ordering = ["-timestamp"]
-
-
-class NotificationTemplate(BaseModel):
-    class TemplateTypeChoices(models.IntegerChoices):
-        SYSTEM = 0, _('SYSTEM')
-        SMS = 1, _("SMS")
-        EMAIL = 2, _("EMAIL")
-
-    title = models.CharField(
-        max_length=255,
-        verbose_name=_('subject'),
-    )
-    description = models.TextField(
-        max_length=20000,
-        verbose_name=_('description'),
-    )
-    template_type = models.PositiveSmallIntegerField(
-        choices=TemplateTypeChoices.choices,
-        verbose_name=_("application service type"),
-    )
-
-    def __str__(self) -> str:
-        return f"{str(self.id)} {self.title}"
-
-    class Meta:
-        verbose_name = _("Notification Template")
-        verbose_name_plural = _("Notification Templates")
